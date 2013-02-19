@@ -1,0 +1,35 @@
+PATH
+  remote: .
+  specs:
+    fwd (0.3.0)
+      connection_pool
+      eventmachine-le
+      servolux
+
+GEM
+  remote: http://rubygems.org/
+  specs:
+    connection_pool (1.0.0)
+    diff-lcs (1.1.3)
+    eventmachine-le (1.1.4)
+    rake (10.0.3)
+    rspec (2.12.0)
+      rspec-core (~> 2.12.0)
+      rspec-expectations (~> 2.12.0)
+      rspec-mocks (~> 2.12.0)
+    rspec-core (2.12.2)
+    rspec-expectations (2.12.1)
+      diff-lcs (~> 1.1.3)
+    rspec-mocks (2.12.2)
+    servolux (0.10.0)
+    yard (0.8.4.1)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  bundler
+  fwd!
+  rake
+  rspec
+  yard
