@@ -23,7 +23,6 @@ describe Fwd::Buffer do
   its(:limit)    { should be(2048) }
   its(:timer)    { should be(timer) }
   its(:fd)       { should be_instance_of(File) }
-  its(:path)     { should be_instance_of(Pathname) }
   its(:logger)   { should be(Fwd.logger) }
 
   describe "concat" do
@@ -31,7 +30,7 @@ describe Fwd::Buffer do
       lambda {
         subject.concat("x" * 1024)
       }.should change {
-        subject.path.size
+        subject.fd.size
       }.by(1024)
     end
   end
@@ -40,14 +39,22 @@ describe Fwd::Buffer do
     before  { buffer }
     subject { lambda { buffer.rotate! } }
 
-    it { should change { buffer.path } }
-    it { should change { buffer.fd } }
-    it { should change { files.size }.by(1) }
+    describe "when changed" do
+      before { buffer.concat("x" * 1024) }
 
-    it 'should archive previous file' do
-      previous = buffer.path
-      subject.call
-      files.should include(previous.sub("open", "closed").to_s)
+      it { should change { buffer.fd.path } }
+      it { should change { files.size }.by(1) }
+
+      it 'should archive previous file' do
+        previous = buffer.fd.path
+        subject.call
+        files.should include(previous.sub("open", "closed").to_s)
+      end
+    end
+
+    describe "when unchanged" do
+      it { should_not change { buffer.fd.path } }
+      it { should_not change { files.size } }
     end
   end
 
@@ -71,7 +78,8 @@ describe Fwd::Buffer do
     end
 
     it 'should rotate file' do
-      lambda { subject.flush! }.should change { subject.path }
+      subject.concat("x")
+      lambda { subject.flush! }.should change { subject.fd.path }
       files.size.should == 2
     end
 

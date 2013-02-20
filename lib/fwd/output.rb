@@ -23,10 +23,11 @@ class Fwd::Output
   # Callback
   def forward!
     Dir[root.join("#{prefix}.*.closed")].each do |file|
-      reserve(file) do |data|
+      ok = reserve(file) do |data|
         logger.debug { "Flushing #{File.basename(file)}, #{data.size.fdiv(1024).round} kB" }
         write(data)
       end
+      break unless ok
     end
   end
 
@@ -45,12 +46,15 @@ class Fwd::Output
       target = Pathname.new(file.sub(/\.closed$/, ".reserved"))
       FileUtils.mv file, target.to_s
 
-      if yield(target.read)
+      result = yield(target.read)
+      if result
         target.unlink
       else
         logger.error "Flushing of #{target} failed."
         FileUtils.mv target.to_s, target.to_s.sub(/\.reserved$/, ".closed")
       end
+
+      result
     rescue Errno::ENOENT
       # Ignore if file was alread flushed by another process
     end

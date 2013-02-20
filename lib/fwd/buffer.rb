@@ -3,7 +3,7 @@ class Fwd::Buffer
   def_delegators :core, :root, :prefix, :logger
 
   MAX_SIZE = 64 * 1024 * 1024 # 64M
-  attr_reader :core, :interval, :rate, :count, :limit, :timer, :fd, :path
+  attr_reader :core, :interval, :rate, :count, :limit, :timer, :fd
 
   # Constructor
   # @param [Fwd] core
@@ -37,19 +37,28 @@ class Fwd::Buffer
 
   # @return [Boolean] true if flush is due
   def flush?
-    (@rate > 0 && @count >= @rate) || (@limit > 0 && @path.size >= @limit)
+    return unless @fd
+    (@rate > 0 && @count >= @rate) || (@limit > 0 && @fd.size >= @limit)
   end
 
   # (Force) rotate buffer file
   def rotate!
-    FileUtils.mv(@path.to_s, @path.to_s.sub(/\.open$/, ".closed")) if @path
-    @fd, @path = new_file
+    return if @fd && @fd.size.zero?
+
+    if @fd
+      logger.debug { "Rotate #{File.basename(@fd.path)} (#{@fd.size / 1024} kB)" }
+      FileUtils.mv(@fd.path, @fd.path.sub(/\.open$/, ".closed"))
+    end
+
+    @fd = new_file
   rescue Errno::ENOENT
   end
 
   # @return [Boolean] true if rotation is due
   def rotate?
-    !@fd || @path.size > MAX_SIZE
+    @fd.nil? || @fd.size > MAX_SIZE
+  rescue Errno::ENOENT
+    false
   end
 
   private
@@ -60,9 +69,9 @@ class Fwd::Buffer
         path = root.join("#{generate_name}.open")
       end
       FileUtils.mkdir_p root.to_s
-      file = File.open(path, "wb")
+      file = path.open("wb")
       file.sync = true
-      [file, path]
+      file
     end
 
     def reschedule!
