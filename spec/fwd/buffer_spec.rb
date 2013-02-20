@@ -39,6 +39,11 @@ describe Fwd::Buffer do
     before  { buffer }
     subject { lambda { buffer.rotate! } }
 
+    it 'should trigger when buffer limit is reached' do
+      lambda { buffer.concat("x" * 2048) }.should_not change { buffer.fd.path }
+      lambda { buffer.concat("x") }.should change { buffer.fd.path }
+    end
+
     describe "when changed" do
       before { buffer.concat("x" * 1024) }
 
@@ -65,11 +70,6 @@ describe Fwd::Buffer do
     it 'should trigger when flush rate is reached' do
       19.times { subject.concat("x") }
       lambda { subject.concat("x") }.should change { subject.count }.from(19).to(0)
-    end
-
-    it 'should trigger when flush limit is reached' do
-      subject.concat("x" * 1024)
-      lambda { subject.concat("x" * 1024) }.should change { subject.count }.from(1).to(0)
     end
 
     it 'should reset count' do

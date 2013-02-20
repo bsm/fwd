@@ -32,13 +32,12 @@ class Fwd::CLI < Hash
         update forward: uris.map {|uri| URI.parse(uri).to_s }
       end
 
-      o.on("-f", "--flush L:M:N",
+      o.on("-f", "--flush M:N",
         "Flush after an interval of N seconds, " <<
         "or after receiving M messages, " <<
-        "or after the limit of L bytes was reached. " <<
-        "Default: 0:10000:60") do |values|
-        l,m,n = values.split(":").map(&:to_i)
-        update flush_limit: l.to_i, flush_rate: m.to_i, flush_interval: n.to_i
+        "Default: 10000:60") do |values|
+        m,n = values.split(":").map(&:to_i)
+        update flush_rate: m.to_i, flush_interval: n.to_i
       end
 
       o.on("--path PATH", "Root path for storage. Default: ./tmp") do |path|
@@ -47,6 +46,10 @@ class Fwd::CLI < Hash
 
       o.on("--prefix STRING", "Custom prefix for buffer files. Default: buffer") do |prefix|
         update prefix: prefix
+      end
+
+      o.on("-v", "--verbose", "Enable verbose logging.") do |_|
+        Fwd.logger.level = Logger::DEBUG
       end
 
       o.separator ""

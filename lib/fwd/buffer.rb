@@ -2,7 +2,7 @@ class Fwd::Buffer
   extend Forwardable
   def_delegators :core, :root, :prefix, :logger
 
-  MAX_SIZE = 64 * 1024 * 1024 # 64M
+  MAX_LIMIT = 64 * 1024 * 1024 # 64M
   attr_reader :core, :interval, :rate, :count, :limit, :timer, :fd
 
   # Constructor
@@ -11,7 +11,7 @@ class Fwd::Buffer
     @core     = core
     @interval = (core.opts[:flush_interval] || 60).to_i
     @rate     = (core.opts[:flush_rate] || 10_000).to_i
-    @limit    = (core.opts[:flush_limit] || 0).to_i
+    @limit    = [core.opts[:buffer_limit].to_i, MAX_LIMIT].reject(&:zero?).min
     @count    = 0
 
     reschedule!
@@ -37,8 +37,7 @@ class Fwd::Buffer
 
   # @return [Boolean] true if flush is due
   def flush?
-    return unless @fd
-    (@rate > 0 && @count >= @rate) || (@limit > 0 && @fd.size >= @limit)
+    @rate > 0 && @count >= @rate
   end
 
   # (Force) rotate buffer file
@@ -46,7 +45,7 @@ class Fwd::Buffer
     return if @fd && @fd.size.zero?
 
     if @fd
-      logger.debug { "Rotate #{File.basename(@fd.path)} (#{@fd.size / 1024} kB)" }
+      logger.debug { "Rotating #{File.basename(@fd.path)}, #{@fd.size / 1024} kB" }
       FileUtils.mv(@fd.path, @fd.path.sub(/\.open$/, ".closed"))
     end
 
@@ -56,7 +55,7 @@ class Fwd::Buffer
 
   # @return [Boolean] true if rotation is due
   def rotate?
-    @fd.nil? || @fd.size > MAX_SIZE
+    @fd.nil? || @fd.size >= @limit
   rescue Errno::ENOENT
     false
   end

@@ -1,40 +1,46 @@
 #!/usr/bin/env ruby
 
-$:.unshift(File.expand_path('../../lib', __FILE__))
-
-require 'bundler/setup'
+require 'pathname'
 require 'benchmark'
-require 'tempfile'
-require 'fwd'
+require 'socket'
+require 'fileutils'
 
 root = Pathname.new(File.expand_path('../..', __FILE__))
-FileUtils.rm_rf root.join("tmp/benchmark")
-FileUtils.mkdir_p root.join("tmp/benchmark")
+tmp  = root.join("tmp/benchmark")
+FileUtils.rm_rf tmp
+FileUtils.mkdir_p tmp
+
+OUT = tmp.join('out.txt')
+FWD = fork { exec "#{root}/bin/fwd-rb --flush 10000:2 -F tcp://0.0.0.0:7291 --path #{tmp} -v" }
+NCC = fork { exec "nc -vlp 7291 > #{OUT}" }
+
+at_exit do
+  Process.kill(:TERM, FWD)
+  Process.kill(:TERM, NCC)
+end
+
+sleep(3)
 
 EVENTS = 10_000_000
-DATA   = "A" * 64
-OUTF   = root.join('tmp/benchmark/out.txt')
+LENGTH = 100
+DATA   = "A" * LENGTH
 
-COLL   = fork do
-  `nc -vlp 7291 > #{OUTF}`
-  sleep
-end
-EMIT   = fork do
+ds = Benchmark.realtime do
   sock = TCPSocket.new "127.0.0.1", 7289
   EVENTS.times { sock.write DATA }
   sock.close
 end
 
-at_exit do
-  Process.kill(:TERM, COLL)
-  Process.kill(:TERM, EMIT)
+rs = Benchmark.realtime do
+  while OUT.size < EVENTS * LENGTH
+    sleep(1)
+    puts "--> Written       : #{(OUT.size / 1024.0 / 1024.0).round(1)}M of #{(EVENTS * LENGTH / 1024.0 / 1024.0).round(1)}M"
+  end
 end
 
-until OUTF.exist?
-  sleep(1)
-end
-
-while OUTF.size < EVENTS * DATA.size
-  sleep(1)
-  puts "Written #{(OUTF.size / 1024.0 / 1024.0).round(1)}M"
-end
+sleep(3)
+puts "--> Dispatched in : #{ds.round(1)}s"
+puts "--> Completed in  : #{(ds + rs).round(1)}s"
+puts "--> FWD RSS       : #{(`ps -o rss= -p #{FWD}`.to_f / 1024).round(1)}M"
+puts "--> Processed     : #{EVENTS} events"
+puts "--> Written       : #{(OUT.size / 1024.0 / 1024.0).round(1)}M"

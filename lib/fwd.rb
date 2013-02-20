@@ -17,7 +17,9 @@ class Fwd
 
     # [Logger] logger instance
     def logger
-      @logger ||= ::Logger.new(STDOUT)
+      @logger ||= ::Logger.new(STDOUT).tap do |l|
+        l.level = ::Logger::INFO
+      end
     end
 
   end
@@ -43,8 +45,8 @@ class Fwd
   # @option opts [String]  prefix buffer file prefix
   # @option opts [URI] bind the endpoint to listen to
   # @option opts [Array<URI>] forward the endpoints to forward to
-  # @option opts [Integer] flush_limit flush after L messages
-  # @option opts [Integer] flush_rate flush after M messages
+  # @option opts [Integer] buffer_limit limit buffer files to N bytes
+  # @option opts [Integer] flush_rate flush after N messages
   # @option opts [Integer] flush_interval flush after N seconds
   def initialize(opts = {})
     @bind   = URI.parse(opts[:bind] || "tcp://0.0.0.0:7289")
