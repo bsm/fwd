@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    fwd (0.3.0)
+    fwd (0.3.1)
       connection_pool
       eventmachine-le
       servolux

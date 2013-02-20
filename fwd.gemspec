@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
   s.name        = File.basename(__FILE__, '.gemspec')
   s.summary     = "fwd >>"
   s.description = "The minimalistic stream forwarder"
-  s.version     = "0.3.0"
+  s.version     = "0.3.1"
 
   s.authors     = ["Black Square Media"]
   s.email       = "info@blacksquaremedia.com"
