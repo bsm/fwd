@@ -7,14 +7,9 @@ describe Fwd::Buffer do
   end
 
   let(:buffer) { described_class.new core }
-  let(:timer)  { mock("Timer", cancel: true) }
   subject      { buffer }
-  before do
-    EM.stub add_periodic_timer: timer
-  end
 
   its(:root)     { should == root }
-  its(:root)     { should be_exist }
   its(:prefix)   { should == "buffer" }
   its(:core)     { should be(core) }
   its(:count)    { should be(0) }
@@ -22,21 +17,26 @@ describe Fwd::Buffer do
   its(:rate)     { should be(20) }
   its(:limit)    { should be(2048) }
   its(:timer)    { should be(timer) }
-  its(:fd)       { should be_instance_of(File) }
+  its(:fd)       { should be_nil }
   its(:logger)   { should be(Fwd.logger) }
 
   describe "concat" do
     it 'should concat data' do
-      lambda {
-        subject.concat("x" * 1024)
-      }.should change {
-        subject.fd.size
-      }.by(1024)
+      subject.concat("x" * 1024)
+      subject.fd.size.should == 1024
+    end
+
+    it 'should create the path' do
+      lambda { buffer.concat("x") }.should change { buffer.root.exist? }.to(true)
+    end
+
+    it 'should rotate' do
+      lambda { buffer.concat("x") }.should change { buffer.fd }.to(instance_of(File))
     end
   end
 
   describe "rotate" do
-    before  { buffer }
+    before  { buffer.send(:rotate!) }
     subject { lambda { buffer.rotate! } }
 
     it 'should trigger when buffer limit is reached' do
@@ -58,7 +58,7 @@ describe Fwd::Buffer do
     end
 
     describe "when unchanged" do
-      it { should_not change { buffer.fd.path } }
+      it { should_not change { buffer.fd.size }.from(0) }
       it { should_not change { files.size } }
     end
   end

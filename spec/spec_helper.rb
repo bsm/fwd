@@ -26,6 +26,10 @@ module Fwd::TestHelper
       forward: ["tcp://127.0.0.1:7291", "tcp://127.0.0.1:7292"]
   end
 
+  def timer
+    @_timer ||= mock("Timer", cancel: true)
+  end
+
 end
 
 RSpec.configure do |c|
@@ -35,5 +39,6 @@ RSpec.configure do |c|
   end
   c.before(:each) do
     FileUtils.rm_rf root.to_s
+    EM.stub add_periodic_timer: timer
   end
 end

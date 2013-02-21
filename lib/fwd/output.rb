@@ -2,7 +2,8 @@ class Fwd::Output
   extend Forwardable
   def_delegators :core, :logger, :root, :prefix
 
-  RESCUABLE = [
+  CHUNK_SIZE = 16 * 1024
+  RESCUABLE  = [
     Errno::ECONNREFUSED, Errno::ECONNRESET, Errno::EHOSTUNREACH, Errno::EPIPE,
     Errno::ENETUNREACH, Errno::ENETDOWN, Errno::EINVAL, Errno::ETIMEDOUT,
     IOError, EOFError
@@ -22,19 +23,26 @@ class Fwd::Output
 
   # Callback
   def forward!
-    Dir[root.join("#{prefix}.*.closed")].each do |file|
-      ok = reserve(file) do |data|
-        logger.debug { "Flushing #{File.basename(file)}, #{data.size.fdiv(1024).round} kB" }
-        write(data)
+    return if @forwarding
+
+    @forwarding = true
+    begin
+      Dir[root.join("#{prefix}.*.closed")].sort.each do |file|
+        ok = reserve(file) do |io|
+          logger.debug { "Flushing #{File.basename(io.path)}, #{io.size.fdiv(1024).round} kB" }
+          write(io)
+        end
+        ok or break
       end
-      break unless ok
+    ensure
+      @forwarding = false
     end
   end
 
-  # @param [String] binary data
-  def write(data)
+  # @param [IO] io source stream
+  def write(io)
     pool.any? do |backend|
-      forward(backend, data)
+      forward(backend, io)
     end
   end
 
@@ -46,7 +54,11 @@ class Fwd::Output
       target = Pathname.new(file.sub(/\.closed$/, ".reserved"))
       FileUtils.mv file, target.to_s
 
-      result = yield(target.read)
+      result = false
+      target.open("r") do |io|
+        result = yield(io)
+      end
+
       if result
         target.unlink
       else
@@ -55,12 +67,17 @@ class Fwd::Output
       end
 
       result
-    rescue Errno::ENOENT
+    rescue Errno::ENOENT => e
       # Ignore if file was alread flushed by another process
+      logger.warn "Flushing of #{File.basename(file)} postponed: #{e.message}"
     end
 
-    def forward(backend, data)
-      backend.write(data) && true
+    def forward(backend, io)
+      io.rewind
+      until io.eof?
+        backend.write(io.read(CHUNK_SIZE))
+      end
+      true
     rescue *RESCUABLE => e
       logger.error "Backend #{backend} failed: #{e.class.name} #{e.message}"
       backend.close

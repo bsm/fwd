@@ -5,13 +5,10 @@ class Fwd::Input < EM::Connection
   attr_reader :core, :buffer
 
   # @param [Fwd] core
-  # @param [Hash] opts additional opts
-  def initialize(core)
-    @core = core
-  end
-
-  def post_init
-    @buffer = Fwd::Buffer.new(core)
+  # @param [Fwd::Buffer] buffer
+  def initialize(core, buffer)
+    @core   = core
+    @buffer = buffer
   end
 
   # When receiving data, concat it to the buffer

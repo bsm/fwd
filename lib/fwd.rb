@@ -87,7 +87,8 @@ class Fwd
   # Starts the server
   def listen!
     logger.info "Starting server on #{@bind}"
-    EM.start_server @bind.host, @bind.port, Fwd::Input, self
+    buffer = Fwd::Buffer.new(self)
+    EM.start_server @bind.host, @bind.port, Fwd::Input, self, buffer
   end
 
   # Initiates flush

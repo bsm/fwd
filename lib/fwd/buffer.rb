@@ -13,9 +13,7 @@ class Fwd::Buffer
     @rate     = (core.opts[:flush_rate] || 10_000).to_i
     @limit    = [core.opts[:buffer_limit].to_i, MAX_LIMIT].reject(&:zero?).min
     @count    = 0
-
     reschedule!
-    rotate!
   end
 
   # @param [String] data binary data
@@ -50,7 +48,8 @@ class Fwd::Buffer
     end
 
     @fd = new_file
-  rescue Errno::ENOENT
+  rescue Errno::ENOENT => e
+    logger.warn "Rotation delayed: #{e.message}"
   end
 
   # @return [Boolean] true if rotation is due

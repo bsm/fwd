@@ -48,30 +48,34 @@ describe Fwd::Output do
   end
 
   describe "writing" do
+    def write(data)
+      subject.write(StringIO.new(data))
+    end
 
     it 'should forward data to backends' do
       servers(7291, 7292) do
-        subject.write("A").should be(true)
-        subject.write("B").should be(true)
-        subject.write("C").should be(true)
-        subject.write("D").should be(true)
+        write("A").should be(true)
+        write("B").should be(true)
+        write("C").should be(true)
+        write("D").should be(true)
       end.should == { 7291=>"BD", 7292=>"AC" }
     end
 
     it 'should handle partial fallouts' do
       servers(7291) do
-        subject.write("A").should be(true)
-        subject.write("B").should be(true)
-        subject.write("C").should be(true)
-        subject.write("D").should be(true)
+        write("A").should be(true)
+        write("B").should be(true)
+        write("C").should be(true)
+        write("D").should be(true)
+        sleep(1)
       end.should == { 7291=>"ABCD" }
     end
 
     it 'should handle full fallouts' do
-      subject.write("A").should be(false)
-      subject.write("B").should be(false)
-      subject.write("C").should be(false)
-      subject.write("D").should be(false)
+      write("A").should be(false)
+      write("B").should be(false)
+      write("C").should be(false)
+      write("D").should be(false)
     end
 
   end

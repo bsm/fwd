@@ -6,29 +6,31 @@ require 'socket'
 require 'fileutils'
 
 root = Pathname.new(File.expand_path('../..', __FILE__))
-tmp  = root.join("tmp/benchmark")
-FileUtils.rm_rf tmp
-FileUtils.mkdir_p tmp
+TMP  = root.join("tmp/benchmark")
+OUT  = TMP.join('out.txt')
 
-OUT = tmp.join('out.txt')
-FWD = fork { exec "#{root}/bin/fwd-rb --flush 10000:2 -F tcp://0.0.0.0:7291 --path #{tmp} -v" }
+FileUtils.rm_rf TMP
+FileUtils.mkdir_p TMP
+FileUtils.touch(OUT)
+
+FWD = fork { exec "#{root}/bin/fwd-rb --flush 10000:2 -F tcp://0.0.0.0:7291 --path #{TMP} -v" }
 NCC = fork { exec "nc -vlp 7291 > #{OUT}" }
 
-at_exit do
-  Process.kill(:TERM, FWD)
-  Process.kill(:TERM, NCC)
-end
-
-sleep(3)
+sleep(5)
 
 EVENTS = 10_000_000
 LENGTH = 100
 DATA   = "A" * LENGTH
+CCUR   = 5
 
-ds = Benchmark.realtime do
-  sock = TCPSocket.new "127.0.0.1", 7289
-  EVENTS.times { sock.write DATA }
-  sock.close
+ds   = Benchmark.realtime do
+  (1..CCUR).map do
+    fork do
+      sock = TCPSocket.new "127.0.0.1", 7289
+      (EVENTS / CCUR).times { sock.write DATA }
+      sock.close
+    end
+  end.each {|t| Process.wait(t) }
 end
 
 rs = Benchmark.realtime do
@@ -44,3 +46,6 @@ puts "--> Completed in  : #{(ds + rs).round(1)}s"
 puts "--> FWD RSS       : #{(`ps -o rss= -p #{FWD}`.to_f / 1024).round(1)}M"
 puts "--> Processed     : #{EVENTS} events"
 puts "--> Written       : #{(OUT.size / 1024.0 / 1024.0).round(1)}M"
+
+Process.kill(:TERM, FWD)
+Process.kill(:TERM, NCC)
