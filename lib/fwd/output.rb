@@ -63,14 +63,14 @@ class Fwd::Output
       if result
         target.unlink
       else
-        logger.error "Flushing of #{target} failed."
-        FileUtils.mv target.to_s, target.to_s.sub(/\.reserved$/, ".closed")
+        logger.error "Flushing #{File.basename(file)} failed"
+        FileUtils.mv target.to_s, file
       end
 
       result
     rescue Errno::ENOENT => e
       # Ignore if file was alread flushed by another process
-      logger.warn "Flushing of #{File.basename(file)} postponed: #{e.message}"
+      logger.warn "Flushing #{File.basename(file)} postponed: #{e.message}"
     end
 
     def forward(backend, io)
