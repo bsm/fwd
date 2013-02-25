@@ -22,6 +22,7 @@ module Fwd::TestHelper
     @_core ||= Fwd.new \
       path: root,
       log:  "/dev/null",
+      log_level: Logger::DEBUG,
       flush_rate: 20,
       buffer_limit: 2048,
       forward: ["tcp://127.0.0.1:7291", "tcp://127.0.0.1:7292"]

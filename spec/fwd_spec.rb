@@ -5,6 +5,7 @@ describe Fwd do
   subject      { core }
 
   its(:logger) { should be_instance_of(::Logger) }
+  its("logger.level") { should == 0 }
   its(:root)   { should be_instance_of(::Pathname) }
   its(:root)   { should == root }
   its(:bind)   { should be_instance_of(URI::Generic) }
