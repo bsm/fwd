@@ -11,19 +11,6 @@ require 'servolux'
 class Fwd
   FLUSH = "\000>>"
 
-  class << self
-
-    attr_writer :logger
-
-    # [Logger] logger instance
-    def logger
-      @logger ||= ::Logger.new(STDOUT).tap do |l|
-        l.level = ::Logger::INFO
-      end
-    end
-
-  end
-
   # @attr_reader [URI] uri to bind to
   attr_reader :bind
 
@@ -35,6 +22,9 @@ class Fwd
 
   # @attr_reader [Fwd::Output] output
   attr_reader :output
+
+  # @attr_reader [Logger] logger
+  attr_reader :logger
 
   # @attr_reader [Hash] opts
   attr_reader :opts
@@ -49,10 +39,12 @@ class Fwd
   # @option opts [Integer] flush_rate flush after N messages
   # @option opts [Integer] flush_interval flush after N seconds
   def initialize(opts = {})
+    @opts   = opts
     @bind   = URI.parse(opts[:bind] || "tcp://0.0.0.0:7289")
     @root   = Pathname.new(opts[:path] || "tmp")
     @prefix = opts[:prefix] || "buffer"
-    @opts   = opts
+    @logger = ::Logger.new(opts[:log] || STDOUT)
+    @logger.level = opts[:log_level] || ::Logger::INFO
     @output = Fwd::Output.new(self)
   end
 
@@ -96,11 +88,6 @@ class Fwd
     @piper.child do
       @piper.puts(FLUSH)
     end
-  end
-
-  # [Logger] logger instance
-  def logger
-    self.class.logger
   end
 
 end

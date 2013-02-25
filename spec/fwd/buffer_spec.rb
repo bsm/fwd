@@ -18,7 +18,7 @@ describe Fwd::Buffer do
   its(:limit)    { should be(2048) }
   its(:timer)    { should be(timer) }
   its(:fd)       { should be_nil }
-  its(:logger)   { should be(Fwd.logger) }
+  its(:logger)   { should be(core.logger) }
 
   describe "concat" do
     it 'should concat data' do

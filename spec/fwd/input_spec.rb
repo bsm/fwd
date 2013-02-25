@@ -14,6 +14,6 @@ describe Fwd::Input do
   it { should be_a(EM::Connection) }
   its(:core) { should be(core) }
   its(:buffer) { should be(buffer) }
-  its(:logger) { should be(Fwd.logger) }
+  its(:logger) { should be(core.logger) }
 
 end

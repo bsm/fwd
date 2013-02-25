@@ -48,8 +48,12 @@ class Fwd::CLI < Hash
         update prefix: prefix
       end
 
-      o.on("-v", "--verbose", "Enable verbose logging.") do |_|
-        Fwd.logger.level = Logger::DEBUG
+      o.on("-l", "--log PATH", "Custom log path. Default: STDOUT") do |path|
+        update log: path
+      end
+
+      o.on("-v", "--verbose", "Enable verbose logging.") do
+        update log_level: ::Logger::DEBUG
       end
 
       o.separator ""

@@ -21,6 +21,7 @@ module Fwd::TestHelper
   def core
     @_core ||= Fwd.new \
       path: root,
+      log:  "/dev/null",
       flush_rate: 20,
       buffer_limit: 2048,
       forward: ["tcp://127.0.0.1:7291", "tcp://127.0.0.1:7292"]
@@ -34,9 +35,6 @@ end
 
 RSpec.configure do |c|
   c.include(Fwd::TestHelper)
-  c.before(:suite) do
-    Fwd.logger = Logger.new("/dev/null")
-  end
   c.before(:each) do
     FileUtils.rm_rf root.to_s
     EM.stub add_periodic_timer: timer
