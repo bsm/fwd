@@ -14,7 +14,7 @@ FileUtils.mkdir_p TMP
 FileUtils.touch(OUT)
 
 FWD = fork { exec "#{root}/bin/fwd-rb --flush 10000:2 -F tcp://0.0.0.0:7291 --path #{TMP} -v" }
-NCC = fork { exec "nc -vlp 7291 > #{OUT}" }
+NCC = fork { exec "nc -kl 7291 > #{OUT}" }
 
 sleep(5)
 
