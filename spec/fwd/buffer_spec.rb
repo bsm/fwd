@@ -3,7 +3,7 @@ require 'spec_helper'
 describe Fwd::Buffer do
 
   def files(glob = "*")
-    Dir[root.join(glob)]
+    Dir[root.join(glob)].map {|f| File.basename(f) }
   end
 
   let(:buffer) { described_class.new core }
@@ -19,6 +19,14 @@ describe Fwd::Buffer do
   its(:timer)    { should be(timer) }
   its(:fd)       { should be_nil }
   its(:logger)   { should be(core.logger) }
+
+  it 'should clean up existing files' do
+    FileUtils.mkdir_p(root.to_s)
+    f1, f2 = "buffer.0.blank.open", "buffer.0.filled.open"
+    root.join(f1).open("w") {}
+    root.join(f2).open("w") {|f| f << "A" }
+    lambda { subject }.should change { files }.from([f1, f2]).to(["buffer.0.filled.closed"])
+  end
 
   describe "concat" do
     it 'should concat data' do
@@ -51,7 +59,7 @@ describe Fwd::Buffer do
       it { should change { files.size }.by(1) }
 
       it 'should archive previous file' do
-        previous = buffer.fd.path
+        previous = File.basename(buffer.fd.path)
         subject.call
         files.should include(previous.sub("open", "closed").to_s)
       end

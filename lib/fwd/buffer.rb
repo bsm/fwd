@@ -13,12 +13,15 @@ class Fwd::Buffer
     @rate     = (core.opts[:flush_rate] || 10_000).to_i
     @limit    = [core.opts[:buffer_limit].to_i, MAX_LIMIT].reject(&:zero?).min
     @count    = 0
+    cleanup!
     reschedule!
+
+    at_exit { rotate! }
   end
 
   # @param [String] data binary data
   def concat(data)
-    rotate! if rotate?
+    rotate! if limit_reached?
     @fd.write(data)
     @count += 1
     flush! if flush?
@@ -44,7 +47,7 @@ class Fwd::Buffer
 
     if @fd
       logger.debug { "Rotating #{File.basename(@fd.path)}, #{@fd.size / 1024} kB" }
-      FileUtils.mv(@fd.path, @fd.path.sub(/\.open$/, ".closed"))
+      close(@fd.path)
     end
 
     @fd = new_file
@@ -52,8 +55,8 @@ class Fwd::Buffer
     logger.warn "Rotation delayed: #{e.message}"
   end
 
-  # @return [Boolean] true if rotation is due
-  def rotate?
+  # @return [Boolean] true if limit reached
+  def limit_reached?
     @fd.nil? || @fd.size >= @limit
   rescue Errno::ENOENT
     false
@@ -70,6 +73,16 @@ class Fwd::Buffer
       file = path.open("wb")
       file.sync = true
       file
+    end
+
+    def close(file)
+      FileUtils.mv(file, file.sub(/\.open$/, ".closed"))
+    end
+
+    def cleanup!
+      Dir[root.join("#{prefix}.*.open")].each do |file|
+        File.size(file).zero? ? File.unlink(file) : close(file)
+      end
     end
 
     def reschedule!
