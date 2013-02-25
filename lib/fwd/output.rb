@@ -27,9 +27,10 @@ class Fwd::Output
 
     @forwarding = true
     begin
-      Dir[root.join("#{prefix}.*.closed")].sort.each do |file|
+      queue = Dir[root.join("#{prefix}.*.closed")].sort
+      while file = queue.shift
         ok = reserve(file) do |io|
-          logger.debug { "Flushing #{File.basename(io.path)}, #{io.size.fdiv(1024).round} kB" }
+          logger.info { "Flushing #{File.basename(io.path)}, #{io.size.fdiv(1024).round} kB (queue: #{queue.size})" }
           write(io)
         end
         ok or break
