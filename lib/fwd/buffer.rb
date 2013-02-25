@@ -93,7 +93,7 @@ class Fwd::Buffer
     end
 
     def generate_name
-      [prefix, Time.now.utc.strftime("%Y%m%d%H%m%s"), SecureRandom.hex(4)].join(".")
+      [prefix, (Time.now.utc.to_f * 1000).round, SecureRandom.hex(4)].join(".")
     end
 
 end

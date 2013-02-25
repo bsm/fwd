@@ -28,6 +28,13 @@ describe Fwd::Buffer do
     lambda { subject }.should change { files }.from([f1, f2]).to(["buffer.0.filled.closed"])
   end
 
+  it 'should generate unique buffer file names' do
+    Time.stub now: Time.at(1313131313.2345678)
+    SecureRandom.stub hex: "6a7b8c9d"
+    buffer.concat("x")
+    buffer.fd.path.should == root.join("buffer.1313131313235.6a7b8c9d.open").to_s
+  end
+
   describe "concat" do
     it 'should concat data' do
       subject.concat("x" * 1024)
