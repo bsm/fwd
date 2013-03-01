@@ -7,7 +7,7 @@ PATH
       servolux
 
 GEM
-  remote: http://rubygems.org/
+  remote: https://rubygems.org/
   specs:
     connection_pool (1.0.0)
     diff-lcs (1.2.1)

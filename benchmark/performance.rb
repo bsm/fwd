@@ -19,8 +19,8 @@ NCC = fork { exec "nc -kl 7291 > #{OUT}" }
 sleep(5)
 
 EVENTS = 10_000_000
-LENGTH = 100
-DATA   = "A" * LENGTH
+DATA   = (("A".."Z").to_a + ("a".."z").to_a).join + "\n"
+LENGTH = DATA.size
 CCUR   = 5
 
 ds   = Benchmark.realtime do

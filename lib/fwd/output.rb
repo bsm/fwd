@@ -2,7 +2,7 @@ class Fwd::Output
   extend Forwardable
   def_delegators :core, :logger, :root, :prefix
 
-  CHUNK_SIZE = 16 * 1024
+  CHUNK_SIZE = 1024 * 1024 # 1M
   RESCUABLE  = [
     Errno::ECONNREFUSED, Errno::ECONNRESET, Errno::EHOSTUNREACH, Errno::EPIPE,
     Errno::ENETUNREACH, Errno::ENETDOWN, Errno::EINVAL, Errno::ETIMEDOUT,
