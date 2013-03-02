@@ -13,6 +13,7 @@ describe Fwd do
   its(:prefix) { should == "buffer" }
   its(:opts)   { should be_instance_of(Hash) }
   its(:logger) { should be_instance_of(Logger) }
+  its(:output) { should be_instance_of(Fwd::Output) }
 
   it "should listen the server" do
     with_em do

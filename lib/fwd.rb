@@ -20,6 +20,9 @@ class Fwd
   # @attr_reader [String] custom buffer file prefix
   attr_reader :prefix
 
+  # @attr_reader [Fwd::Output] output
+  attr_reader :output
+
   # @attr_reader [Logger] logger
   attr_reader :logger
 
@@ -42,6 +45,7 @@ class Fwd
     @prefix = opts[:prefix] || "buffer"
     @logger = ::Logger.new(opts[:log] || STDOUT)
     @logger.level = opts[:log_level] || ::Logger::INFO
+    @output = Fwd::Output.new(self)
   end
 
   # Starts the loop
@@ -59,7 +63,7 @@ class Fwd
 
     @piper.parent do
       $0 = "fwd-rb (output)"
-      output_loop!(@piper)
+      output_loop!
     end
   end
 
@@ -71,15 +75,14 @@ class Fwd
   end
 
   # Starts the output loop
-  def output_loop!(pipe)
-    output = Fwd::Output.new(self)
+  def output_loop!
     loop do
       sleep(0.1)
-      case val = pipe.gets()
+      case val = @piper.gets()
       when FLUSH
-        output.forward!
+        @output.forward!
       else
-        logger.error "Received unknown message #{val.class.name} "
+        logger.error "Received unknown message #{val.class.name}: #{val.inspect}"
         exit
       end
     end
