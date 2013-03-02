@@ -46,8 +46,8 @@ class Fwd::Buffer
     return if @fd && @fd.size.zero?
 
     if @fd
-      logger.debug { "Rotating #{File.basename(@fd.path)}, #{@fd.size / 1024} kB" }
       close(@fd.path)
+      logger.debug { "Rotated #{File.basename(@fd.path)}, #{@fd.size / 1024}k" }
     end
 
     @fd = new_file
@@ -93,7 +93,7 @@ class Fwd::Buffer
     end
 
     def generate_name
-      [prefix, (Time.now.utc.to_f * 1000).round, SecureRandom.hex(4)].join(".")
+      [prefix, (Time.now.utc.to_f * 1000).round, SecureRandom.hex(2)].join(".")
     end
 
 end

@@ -20,9 +20,6 @@ class Fwd
   # @attr_reader [String] custom buffer file prefix
   attr_reader :prefix
 
-  # @attr_reader [Fwd::Output] output
-  attr_reader :output
-
   # @attr_reader [Logger] logger
   attr_reader :logger
 
@@ -45,14 +42,12 @@ class Fwd
     @prefix = opts[:prefix] || "buffer"
     @logger = ::Logger.new(opts[:log] || STDOUT)
     @logger.level = opts[:log_level] || ::Logger::INFO
-    @output = Fwd::Output.new(self)
   end
 
   # Starts the loop
   def run!
-    $0 = "fwd-rb (output)"
-
     @piper = ::Servolux::Piper.new('rw')
+
     at_exit do
       @piper.signal("TERM")
     end
@@ -63,16 +58,8 @@ class Fwd
     end
 
     @piper.parent do
-      loop do
-        sleep(0.1)
-        case val = @piper.gets()
-        when FLUSH
-          output.forward!
-        else
-          logger.error "Received unknown message #{val.class.name} "
-          exit
-        end
-      end
+      $0 = "fwd-rb (output)"
+      output_loop!(@piper)
     end
   end
 
@@ -81,6 +68,21 @@ class Fwd
     logger.info "Starting server on #{@bind}"
     buffer = Fwd::Buffer.new(self)
     EM.start_server @bind.host, @bind.port, Fwd::Input, self, buffer
+  end
+
+  # Starts the output loop
+  def output_loop!(pipe)
+    output = Fwd::Output.new(self)
+    loop do
+      sleep(0.1)
+      case val = pipe.gets()
+      when FLUSH
+        output.forward!
+      else
+        logger.error "Received unknown message #{val.class.name} "
+        exit
+      end
+    end
   end
 
   # Initiates flush

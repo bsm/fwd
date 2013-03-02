@@ -3,7 +3,7 @@ require 'spec_helper'
 describe Fwd::Buffer do
 
   def files(glob = "*")
-    Dir[root.join(glob)].map {|f| File.basename(f) }
+    Dir[root.join(glob)].map {|f| File.basename(f) }.sort
   end
 
   let(:buffer) { described_class.new core }

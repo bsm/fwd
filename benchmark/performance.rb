@@ -13,16 +13,14 @@ FileUtils.rm_rf TMP
 FileUtils.mkdir_p TMP
 FileUtils.touch(OUT)
 
-FWD = fork { exec "#{root}/bin/fwd-rb --flush 10000:2 -F tcp://0.0.0.0:7291 --path #{TMP} -v" }
-NCC = fork { exec "nc -kl 7291 > #{OUT}" }
-
-sleep(5)
-
+FWD    = spawn "#{root}/bin/fwd-rb --flush 10000:2 -F tcp://0.0.0.0:7291 --path #{TMP} -v"
+NCC    = spawn "nc -kl 7291", out: [OUT, "w"]
 EVENTS = 10_000_000
 DATA   = (("A".."Z").to_a + ("a".."z").to_a).join + "\n"
 LENGTH = DATA.size
 CCUR   = 5
 
+sleep(5)
 ds   = Benchmark.realtime do
   (1..CCUR).map do
     fork do

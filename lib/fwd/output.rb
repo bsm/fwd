@@ -2,7 +2,7 @@ class Fwd::Output
   extend Forwardable
   def_delegators :core, :logger, :root, :prefix
 
-  CHUNK_SIZE = 1024 * 1024 # 1M
+  CHUNK_SIZE = 1024 * 1024
   RESCUABLE  = [
     Errno::ECONNREFUSED, Errno::ECONNRESET, Errno::EHOSTUNREACH, Errno::EPIPE,
     Errno::ENETUNREACH, Errno::ENETDOWN, Errno::EINVAL, Errno::ETIMEDOUT,
@@ -26,24 +26,24 @@ class Fwd::Output
     return if @forwarding
 
     @forwarding = true
-    begin
-      queue = Dir[root.join("#{prefix}.*.closed")].sort
-      while file = queue.shift
-        ok = reserve(file) do |io|
-          logger.info { "Flushing #{File.basename(io.path)}, #{io.size.fdiv(1024).round} kB (queue: #{queue.size})" }
-          write(io)
-        end
-        ok or break
+    while (q = closed_files) && (file = q.shift)
+      ok = reserve(file) do |io|
+        start   = Time.now
+        success = send_data(io)
+        real    = Time.now - start
+        logger.info { "Flushed #{File.basename(io.path)}, #{io.size.fdiv(1024).round}k in #{real.round(1)}s (Q: #{q.size})" }
+        success
       end
-    ensure
-      @forwarding = false
+      ok || break
     end
+  ensure
+    @forwarding = false
   end
 
   # @param [IO] io source stream
-  def write(io)
+  def send_data(io)
     pool.any? do |backend|
-      forward(backend, io)
+      send_to(backend, io)
     end
   end
 
@@ -55,25 +55,25 @@ class Fwd::Output
       target = Pathname.new(file.sub(/\.closed$/, ".reserved"))
       FileUtils.mv file, target.to_s
 
-      result = false
+      success = false
       target.open("r") do |io|
-        result = yield(io)
+        success = yield(io)
       end
 
-      if result
+      if success
         target.unlink
       else
         logger.error "Flushing #{File.basename(file)} failed"
         FileUtils.mv target.to_s, file
       end
 
-      result
+      success
     rescue Errno::ENOENT => e
       # Ignore if file was alread flushed by another process
       logger.warn "Flushing #{File.basename(file)} postponed: #{e.message}"
     end
 
-    def forward(backend, io)
+    def send_to(backend, io)
       io.rewind
       until io.eof?
         backend.write(io.read(CHUNK_SIZE))
@@ -83,6 +83,10 @@ class Fwd::Output
       logger.error "Backend #{backend} failed: #{e.class.name} #{e.message}"
       backend.close
       false
+    end
+
+    def closed_files
+      Dir[root.join("#{prefix}.*.closed")].sort
     end
 
 end
