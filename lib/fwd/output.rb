@@ -2,7 +2,6 @@ class Fwd::Output
   extend Forwardable
   def_delegators :core, :logger, :root, :prefix
 
-  CHUNK_SIZE = 1024 * 1024
   RESCUABLE  = [
     Errno::ECONNREFUSED, Errno::ECONNRESET, Errno::EHOSTUNREACH, Errno::EPIPE,
     Errno::ENETUNREACH, Errno::ENETDOWN, Errno::EINVAL, Errno::ETIMEDOUT,
@@ -27,11 +26,11 @@ class Fwd::Output
 
     @forwarding = true
     while (q = closed_files) && (file = q.shift)
-      ok = reserve(file) do |io|
+      ok = reserve(file) do |reserved|
         start   = Time.now
-        success = send_data(io)
+        success = stream_file(reserved)
         real    = Time.now - start
-        logger.info { "Flushed #{File.basename(io.path)}, #{io.size.fdiv(1024).round}k in #{real.round(1)}s (Q: #{q.size})" }
+        logger.info { "Flushed #{reserved.basename}, #{reserved.size.fdiv(1024).round}k in #{real.round(1)}s (Q: #{q.size})" }
         success
       end
       ok || break
@@ -40,10 +39,10 @@ class Fwd::Output
     @forwarding = false
   end
 
-  # @param [IO] io source stream
-  def send_data(io)
+  # @param [Pathname] file file to stream
+  def stream_file(file)
     pool.any? do |backend|
-      send_to(backend, io)
+      stream_to(backend, file)
     end
   end
 
@@ -55,11 +54,7 @@ class Fwd::Output
       target = Pathname.new(file.sub(/\.closed$/, ".reserved"))
       FileUtils.mv file, target.to_s
 
-      success = false
-      target.open("r") do |io|
-        success = yield(io)
-      end
-
+      success = yield(target)
       if success
         target.unlink
       else
@@ -73,11 +68,8 @@ class Fwd::Output
       logger.warn "Flushing #{File.basename(file)} postponed: #{e.message}"
     end
 
-    def send_to(backend, io)
-      io.rewind
-      until io.eof?
-        backend.write(io.read(CHUNK_SIZE))
-      end
+    def stream_to(backend, file)
+      backend.stream(file)
       true
     rescue *RESCUABLE => e
       logger.error "Backend #{backend} failed: #{e.class.name} #{e.message}"

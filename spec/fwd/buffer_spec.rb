@@ -23,8 +23,8 @@ describe Fwd::Buffer do
   it 'should clean up existing files' do
     FileUtils.mkdir_p(root.to_s)
     f1, f2 = "buffer.0.blank.open", "buffer.0.filled.open"
-    root.join(f1).open("w") {}
-    root.join(f2).open("w") {|f| f << "A" }
+    root.join(f1).open("wb") {}
+    root.join(f2).open("wb") {|f| f << "A" }
     lambda { subject }.should change { files }.from([f1, f2]).to(["buffer.0.filled.closed"])
   end
 

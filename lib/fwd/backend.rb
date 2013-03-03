@@ -5,8 +5,8 @@ class Fwd::Backend
     @url = URI(url)
   end
 
-  def write(data)
-    sock.write(data)
+  def stream(file)
+    IO.copy_stream file.to_s, sock
   end
 
   def close

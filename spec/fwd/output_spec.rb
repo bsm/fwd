@@ -2,6 +2,7 @@ require 'spec_helper'
 
 describe Fwd::Output do
 
+  before       { FileUtils.mkdir_p root.to_s }
   let(:output) { described_class.new core }
   subject { output }
 
@@ -47,35 +48,37 @@ describe Fwd::Output do
     subject.pool.checkout {|c| c.should be_instance_of(Fwd::Backend) }
   end
 
-  describe "sending data" do
-    def snd(data)
-      subject.send_data(StringIO.new(data))
+  describe "streaming data" do
+
+    def stream(data)
+      tmp = root.join("temp.file")
+      tmp.open("wb") {|f| f << data }
+      subject.stream_file(tmp)
     end
 
     it 'should forward data to backends' do
       servers(7291, 7292) do
-        snd("A").should be(true)
-        snd("B").should be(true)
-        snd("C").should be(true)
-        snd("D").should be(true)
+        stream("A").should be(true)
+        stream("B").should be(true)
+        stream("C").should be(true)
+        stream("D").should be(true)
       end.should == { 7291=>"BD", 7292=>"AC" }
     end
 
     it 'should handle partial fallouts' do
       servers(7291) do
-        snd("A").should be(true)
-        snd("B").should be(true)
-        snd("C").should be(true)
-        snd("D").should be(true)
-        sleep(1)
+        stream("A").should be(true)
+        stream("B").should be(true)
+        stream("C").should be(true)
+        stream("D").should be(true)
       end.should == { 7291=>"ABCD" }
     end
 
     it 'should handle full fallouts' do
-      snd("A").should be(false)
-      snd("B").should be(false)
-      snd("C").should be(false)
-      snd("D").should be(false)
+      stream("A").should be(false)
+      stream("B").should be(false)
+      stream("C").should be(false)
+      stream("D").should be(false)
     end
 
   end
@@ -83,7 +86,7 @@ describe Fwd::Output do
   describe "forwarding" do
 
     def write(file)
-      file.open("w") {|f| f << "x" }
+      file.open("wb") {|f| f << "x" }
       file
     end
 
@@ -91,19 +94,18 @@ describe Fwd::Output do
       Dir[root.join(glob)].map {|f| File.basename f }.sort
     end
 
-    before    { subject.stub! send_data: true }
-    before    { FileUtils.mkdir_p root.to_s }
+    before    { subject.stub! stream_file: true }
     let!(:f1) { write root.join("buffer.1.closed") }
     let!(:f2) { write root.join("buffer.2.open") }
     let!(:f3) { write root.join("buffer.3.closed") }
 
     it 'should send the data' do
-      subject.should_receive(:send_data).twice.and_return(true)
+      subject.should_receive(:stream_file).twice.and_return(true)
       subject.forward!
     end
 
     it 'should stop on first failure' do
-      subject.should_receive(:send_data).once.and_return(false)
+      subject.should_receive(:stream_file).once.and_return(false)
       subject.forward!
     end
 
@@ -114,8 +116,8 @@ describe Fwd::Output do
     end
 
     it 'should handle revert failed files' do
-      subject.should_receive(:send_data).and_return(true)
-      subject.should_receive(:send_data).and_return(false)
+      subject.should_receive(:stream_file).and_return(true)
+      subject.should_receive(:stream_file).and_return(false)
 
       lambda { subject.forward! }.should change {
         files
