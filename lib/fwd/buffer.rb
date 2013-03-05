@@ -70,7 +70,7 @@ class Fwd::Buffer
         path = root.join("#{generate_name}.open")
       end
       FileUtils.mkdir_p root.to_s
-      file = path.open("wb")
+      file = path.open("wb", encoding: Encoding::BINARY)
       file.sync = true
       file
     end

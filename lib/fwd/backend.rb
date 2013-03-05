@@ -8,7 +8,7 @@ class Fwd::Backend
   end
 
   def stream(file)
-    File.open(file.to_s) do |io|
+    File.open(file.to_s, "rb", encoding: Encoding::BINARY) do |io|
       sock.write(io.read(CHUNK_SIZE)) until io.eof?
     end
   end
