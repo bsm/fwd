@@ -23,6 +23,7 @@ Gem::Specification.new do |s|
   s.add_dependency "eventmachine-le"
   s.add_dependency "servolux"
   s.add_dependency "connection_pool"
+  s.add_dependency "io_splice"
 
   s.add_development_dependency "rake"
   s.add_development_dependency "bundler"
