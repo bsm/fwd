@@ -7,7 +7,6 @@ require 'pathname'
 require 'securerandom'
 require 'connection_pool'
 require 'servolux'
-require 'io/splice'
 
 class Fwd
   FLUSH = "\000>>"

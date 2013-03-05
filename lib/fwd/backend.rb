@@ -1,12 +1,16 @@
 class Fwd::Backend
   attr_reader :url
 
+  CHUNK_SIZE = 16 * 1024
+
   def initialize(url)
     @url = URI(url)
   end
 
   def stream(file)
-    IO::Splice.copy_stream file.to_s, sock
+    File.open(file.to_s) do |io|
+      sock.write(io.read(CHUNK_SIZE)) until io.eof?
+    end
   end
 
   def close
