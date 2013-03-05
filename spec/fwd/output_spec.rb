@@ -11,7 +11,7 @@ describe Fwd::Output do
 
     def initialize(port)
       @port   = port
-      @data   = ""
+      @data   = "".force_encoding(Encoding::BINARY)
       @server = ::TCPServer.new("127.0.0.1", port)
       @thread = Thread.new do
         loop do
@@ -39,6 +39,7 @@ describe Fwd::Output do
     yield(*svs)
     sleep(0.01)
     svs.each(&:stop)
+    svs.each {|s| s.data.encoding.should be(Encoding::BINARY) }
     Hash[svs.map{|s| [s.port, s.data] }]
   end
 
@@ -52,7 +53,7 @@ describe Fwd::Output do
 
     def stream(data)
       tmp = root.join("temp.file")
-      tmp.open("wb") {|f| f << data }
+      tmp.open("wb", encoding: Encoding::BINARY) {|f| f << data.force_encoding(Encoding::BINARY) }
       subject.stream_file(tmp)
     end
 

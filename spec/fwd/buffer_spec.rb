@@ -35,6 +35,16 @@ describe Fwd::Buffer do
     buffer.fd.path.should == root.join("buffer.1313131313235.6a7b8c9d.open").to_s
   end
 
+  it 'should write binary data' do
+    original = (0..255).map {|i| i.chr }.join * 3
+    original.encoding.should == Encoding::BINARY
+    buffer.concat(original)
+
+    stored = File.read(buffer.fd.path, encoding: Encoding::BINARY)
+    stored.encoding.should == Encoding::BINARY
+    stored.should == original
+  end
+
   describe "concat" do
     it 'should concat data' do
       subject.concat("x" * 1024)
