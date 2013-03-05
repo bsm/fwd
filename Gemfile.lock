@@ -1,9 +1,10 @@
 PATH
   remote: .
   specs:
-    fwd (0.3.3)
+    fwd (0.4.0)
       connection_pool
       eventmachine-le
+      io_splice
       servolux
 
 GEM
@@ -12,6 +13,7 @@ GEM
     connection_pool (1.0.0)
     diff-lcs (1.2.1)
     eventmachine-le (1.1.4)
+    io_splice (4.2.0)
     rake (10.0.3)
     rspec (2.13.0)
       rspec-core (~> 2.13.0)

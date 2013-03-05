@@ -6,7 +6,7 @@ class Fwd::Backend
   end
 
   def stream(file)
-    IO.copy_stream file.to_s, sock
+    IO::Splice.copy_stream file.to_s, sock
   end
 
   def close
