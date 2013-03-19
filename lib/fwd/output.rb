@@ -73,7 +73,6 @@ class Fwd::Output
       true
     rescue *RESCUABLE => e
       logger.error "Backend #{backend} failed: #{e.class.name} #{e.message}"
-      backend.close
       false
     end
 

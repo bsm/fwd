@@ -15,8 +15,10 @@ describe Fwd::Output do
       @server = ::TCPServer.new("127.0.0.1", port)
       @thread = Thread.new do
         loop do
-          conn = @server.accept
-          loop { @data << conn.readpartial(1024) }
+          sock = @server.accept
+          unless sock.eof?
+            @data << sock.readpartial(1024)
+          end
         end
       end
       sleep(0.001) until @thread.alive?

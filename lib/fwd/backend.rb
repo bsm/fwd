@@ -8,24 +8,18 @@ class Fwd::Backend
   end
 
   def stream(file)
-    File.open(file.to_s, "rb", encoding: Encoding::BINARY) do |io|
-      sock.write(io.read(CHUNK_SIZE)) until io.eof?
+    sock = TCPSocket.new @url.host, @url.port
+    begin
+      File.open(file.to_s, "rb", encoding: Encoding::BINARY) do |io|
+        sock.write(io.read(CHUNK_SIZE)) until io.eof?
+      end
+    ensure
+      sock.close
     end
-  end
-
-  def close
-    @sock.close if @sock
-    @sock = nil
   end
 
   def to_s
     url.to_s
   end
-
-  protected
-
-    def sock
-      @sock ||= TCPSocket.new @url.host, @url.port
-    end
 
 end
